@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Plus, Trash2, Calendar } from "lucide-react";
+import { Plus, Trash2, Calendar, FileText } from "lucide-react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 interface SaleItem {
   id: string;
@@ -142,6 +144,124 @@ export default function DailySale() {
           error instanceof Error ? error.message : "Unknown error"
         }`
       );
+    }
+  };
+
+  const generatePrintPDF = async () => {
+    if (salesData.length === 0) {
+      alert("No sales data available to print");
+      return;
+    }
+
+    try {
+      // Create a temporary container for the table
+      const tempDiv = document.createElement("div");
+      tempDiv.style.position = "absolute";
+      tempDiv.style.left = "-9999px";
+      tempDiv.style.background = "white";
+      tempDiv.style.padding = "20px";
+
+      // Build table HTML
+      let tableHTML = `
+        <div style="font-family: Arial, sans-serif; width: 600px;">
+          <h2 style="text-align: center; margin-bottom: 20px;">Daily Sales Report</h2>
+          <p style="text-align: center; margin-bottom: 20px; font-size: 12px;">Date: ${selectedDate}</p>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="border-bottom: 2px solid #000;">
+                <th style="padding: 8px; text-align: left; font-weight: bold;">Serial No</th>
+                <th style="padding: 8px; text-align: left; font-weight: bold;">Product</th>
+                <th style="padding: 8px; text-align: center; font-weight: bold;">Quantity</th>
+                <th style="padding: 8px; text-align: right; font-weight: bold;">Unit Price</th>
+                <th style="padding: 8px; text-align: right; font-weight: bold;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+      `;
+
+      let serialNo = 1;
+      let totalAmount = 0;
+
+      salesData.forEach((sale) => {
+        if (sale.items && sale.items.length > 0) {
+          sale.items.forEach((item) => {
+            const itemTotal = Number(item.total);
+            totalAmount += itemTotal;
+            tableHTML += `
+              <tr style="border-bottom: 1px solid #ccc;">
+                <td style="padding: 8px;">${serialNo}</td>
+                <td style="padding: 8px;">${item.model_name}</td>
+                <td style="padding: 8px; text-align: center;">${
+                  item.quantity
+                }</td>
+                <td style="padding: 8px; text-align: right;">$${Number(
+                  item.unit_price
+                ).toFixed(2)}</td>
+                <td style="padding: 8px; text-align: right;">$${itemTotal.toFixed(
+                  2
+                )}</td>
+              </tr>
+            `;
+            serialNo++;
+          });
+        }
+      });
+
+      tableHTML += `
+            </tbody>
+          </table>
+          <div style="margin-top: 20px; border-top: 2px solid #000; padding-top: 10px;">
+            <div style="display: flex; justify-content: flex-end;">
+              <div>
+                <p style="margin: 0; font-weight: bold;">Daily Total: <span style="font-size: 18px;">$${totalAmount.toFixed(
+                  2
+                )}</span></p>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      tempDiv.innerHTML = tableHTML;
+      document.body.appendChild(tempDiv);
+
+      // Convert to canvas
+      const canvas = await html2canvas(tempDiv, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+      });
+
+      // Create PDF
+      const pdf = new jsPDF({
+        orientation: "portrait",
+        unit: "mm",
+        format: "a4",
+      });
+
+      const imgWidth = 210; // A4 width in mm
+      const pageHeight = 297; // A4 height in mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      const imgData = canvas.toDataURL("image/png");
+
+      while (heightLeft >= 0) {
+        pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+        position -= pageHeight;
+
+        if (heightLeft > 0) {
+          pdf.addPage();
+        }
+      }
+
+      pdf.save(`daily_sales_${selectedDate}.pdf`);
+      document.body.removeChild(tempDiv);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+      alert("Error generating PDF. Please try again.");
     }
   };
 
@@ -314,9 +434,19 @@ export default function DailySale() {
           <h2 className="text-xl font-semibold text-gray-900">
             Sales for {selectedDate}
           </h2>
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <Calendar size={16} />
-            <span>{totalItems} items sold</span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <Calendar size={16} />
+              <span>{totalItems} items sold</span>
+            </div>
+            <button
+              onClick={generatePrintPDF}
+              disabled={salesData.length === 0}
+              className="ml-4 bg-blue-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-medium"
+            >
+              <FileText size={18} />
+              Print Sale
+            </button>
           </div>
         </div>
 
