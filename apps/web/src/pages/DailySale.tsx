@@ -31,7 +31,15 @@ interface DBSale {
 }
 
 export default function DailySale() {
-  const [items, setItems] = useState<SaleItem[]>([]);
+  const [items, setItems] = useState<SaleItem[]>(() => {
+    // Load draft items from localStorage
+    try {
+      const stored = localStorage.getItem('dailySale_draft_items');
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
   const [modelName, setModelName] = useState('');
   const [quantity, setQuantity] = useState('');
   const [unitPrice, setUnitPrice] = useState('');
@@ -41,6 +49,13 @@ export default function DailySale() {
     new Date().toISOString().split('T')[0],
   );
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Save draft items to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('dailySale_draft_items', JSON.stringify(items));
+  }, [items]);
 
   // Fetch sales data from backend
   useEffect(() => {
@@ -50,10 +65,12 @@ export default function DailySale() {
   const fetchSalesData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getSales(selectedDate);
-      setSalesData(data);
+      setSalesData(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching sales:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load sales');
     } finally {
       setLoading(false);
     }
@@ -106,6 +123,7 @@ export default function DailySale() {
     }
 
     try {
+      setSaveSuccess(false);
       const saleData = {
         items,
         total_amount: grandTotal,
@@ -118,14 +136,15 @@ export default function DailySale() {
         }\nTotal: $${grandTotal.toFixed(2)}`,
       );
       setItems([]);
+      localStorage.removeItem('dailySale_draft_items'); // Clear draft after save
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
       fetchSalesData(); // Refresh the data
     } catch (error) {
       console.error('Error saving sale:', error);
-      alert(
-        `Error saving sale: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`,
-      );
+      const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+      setError(`Failed to save sale: ${errorMsg}`);
+      alert(`Error saving sale: ${errorMsg}`);
     }
   };
 
@@ -255,6 +274,18 @@ export default function DailySale() {
           Record and view daily sales transactions
         </p>
       </div>
+
+      {error && (
+        <div className='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg'>
+          Error: {error}
+        </div>
+      )}
+
+      {saveSuccess && (
+        <div className='bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded-lg'>
+          Sale saved successfully!
+        </div>
+      )}
 
       {/* Add Product Form */}
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>

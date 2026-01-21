@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS daily_sales (
 CREATE TABLE IF NOT EXISTS sale_items (
   id INT PRIMARY KEY AUTO_INCREMENT,
   sale_id INT NOT NULL,
-  product_id INT NOT NULL,
+  product_id INT,
   model_name VARCHAR(255),
   quantity INT NOT NULL,
   unit_price DECIMAL(10, 2) NOT NULL,

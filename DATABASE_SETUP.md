@@ -4,8 +4,9 @@
 
 ### Prerequisites
 
-- MySQL Server installed and running
-- MySQL user account with root access (or a user with CREATE DATABASE privileges)
+- MySQL Server installed and running (v5.7 or higher)
+- MySQL user account with CREATE DATABASE privileges
+- Node.js v18 or higher
 
 ### Step 1: Create Database and Tables
 
@@ -25,30 +26,129 @@ When prompted, enter your MySQL root password.
 
 This will:
 
-- Create the `gadget_ims` database
-- Create all required tables (products, daily_sales, sale_items, customers, suppliers, purchases, purchase_items)
-- Insert sample data for testing
+- Create the `gadgetims` database
+- Create all required tables (products, daily_sales, sale_items, customers, suppliers, purchases, purchase_items, users, inventory_alerts)
 
-### Step 2: Verify Database Connection
+### Step 2: Create a Default User (Required for Login)
 
-Check the `.env` file in the backend folder:
+After the database is created, you need to create a user account to log in to the application.
+
+**Using MySQL Client:**
+
+```bash
+mysql -u root -p gadgetims
+```
+
+Then run (replace with your desired username and password):
+
+```sql
+INSERT INTO users (username, password_hash) VALUES ('admin', '$2a$10$1n5qzRqKzCHVOmzC9SqhE.xvvw3j1zBE8hTZqh6Y8qgVXIIz0Qi5i');
+```
+
+This creates a user with:
+
+- Username: `admin`
+- Password: `admin123` (hashed)
+
+**To create your own hashed password:**
+
+1. Use an online bcrypt generator or
+2. Use Node.js:
+
+```bash
+node -e "console.log(require('bcryptjs').hashSync('your-password', 10))"
+```
+
+### Step 3: Backend Setup
+
+1. Navigate to the API folder:
+
+```bash
+cd apps/api
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Create a `.env` file by copying `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+4. Update the `.env` file with your MySQL credentials:
 
 ```
 PORT=5000
+NODE_ENV=development
 DB_HOST=localhost
 DB_USER=root
-DB_PASS=
-DB_NAME=gadget_ims
+DB_PASS=your-mysql-password
+DB_NAME=gadgetims
+SESSION_SECRET=your-secret-key-change-in-production
 ```
 
-Update `DB_PASS` if your MySQL root user has a password.
-
-### Step 3: Start the Backend
+5. Start the backend:
 
 ```bash
-cd backend
 npm run dev
 ```
+
+The backend should start on `http://localhost:5000`
+
+### Step 4: Frontend Setup
+
+1. In a new terminal, navigate to the web folder:
+
+```bash
+cd apps/web
+```
+
+2. Install dependencies:
+
+```bash
+npm install
+```
+
+3. Create a `.env` file by copying `.env.example`:
+
+```bash
+cp .env.example .env
+```
+
+4. Start the frontend:
+
+```bash
+npm run dev
+```
+
+The frontend should start on `http://localhost:5173`
+
+### Step 5: Verify Database Connection
+
+Check the backend logs for:
+
+```
+Server running on 5000
+```
+
+If you see connection errors, verify:
+
+- MySQL is running
+- Database credentials in `.env` are correct
+- Database `gadgetims` exists
+
+### Step 6: Login to the Application
+
+1. Open `http://localhost:5173` in your browser
+2. Login with:
+   - Username: `admin`
+   - Password: `admin123` (or your custom password)
+
+````
 
 The backend will connect to the database and run on `http://localhost:5000`
 
@@ -60,7 +160,7 @@ curl http://localhost:5000/api/products
 
 # Health check
 curl http://localhost:5000/api/health
-```
+````
 
 ---
 

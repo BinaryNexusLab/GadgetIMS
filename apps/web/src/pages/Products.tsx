@@ -20,9 +20,11 @@ interface Product {
 export default function Products() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     sku: '',
@@ -39,11 +41,14 @@ export default function Products() {
   const fetchProducts = async () => {
     try {
       setLoading(true);
+      setError(null);
       const data = await getProducts();
-      setProducts(data);
+      setProducts(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error('Error fetching products:', error);
-      alert('Failed to load products');
+      setError(
+        error instanceof Error ? error.message : 'Failed to load products',
+      );
     } finally {
       setLoading(false);
     }
@@ -84,6 +89,7 @@ export default function Products() {
     }
 
     try {
+      setSubmitting(true);
       const payload = {
         name: formData.name,
         sku: formData.sku,
@@ -105,7 +111,9 @@ export default function Products() {
       fetchProducts();
     } catch (error) {
       console.error('Error saving product:', error);
-      alert('Failed to save product');
+      alert(error instanceof Error ? error.message : 'Failed to save product');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -139,20 +147,26 @@ export default function Products() {
   };
 
   return (
-    <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
+    <div className='space-y-6 p-4 md:p-0'>
+      <div className='flex flex-col md:flex-row items-start md:items-center justify-between gap-4'>
         <div>
           <h1 className='text-3xl font-bold text-gray-900'>Products</h1>
           <p className='text-gray-600 mt-2'>Manage your inventory products</p>
         </div>
         <button
           onClick={handleAdd}
-          className='bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700'
+          className='bg-blue-600 text-white px-6 py-2 rounded-lg flex items-center gap-2 hover:bg-blue-700 whitespace-nowrap'
         >
           <Plus size={20} />
           Add Product
         </button>
       </div>
+
+      {error && (
+        <div className='bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg'>
+          Error: {error}
+        </div>
+      )}
 
       <div className='bg-white rounded-lg shadow-sm border border-gray-200 p-6'>
         <div className='flex items-center gap-2 mb-6'>
@@ -176,7 +190,7 @@ export default function Products() {
           <div className='overflow-x-auto'>
             <table className='w-full text-sm'>
               <thead>
-                <tr className='border-b border-gray-200'>
+                <tr className='border-b border-gray-200 bg-gray-50'>
                   <th className='text-left py-3 px-4 text-gray-600 font-semibold'>
                     Product Name
                   </th>
@@ -219,7 +233,7 @@ export default function Products() {
                         {product.category}
                       </td>
                       <td className='py-3 px-4 text-gray-900'>
-                        ${product.unit_price.toFixed(2)}
+                        ${Number(product.unit_price).toFixed(2)}
                       </td>
                       <td className='py-3 px-4 text-gray-900'>
                         {product.stock} units
@@ -258,7 +272,7 @@ export default function Products() {
 
       {/* Modal */}
       {showModal && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
+        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4'>
           <div className='bg-white rounded-lg shadow-xl p-8 w-full max-w-2xl max-h-screen overflow-y-auto'>
             <div className='flex items-center justify-between mb-6'>
               <h2 className='text-2xl font-bold text-gray-900'>
@@ -273,7 +287,7 @@ export default function Products() {
             </div>
 
             <form onSubmit={handleSubmit} className='space-y-4'>
-              <div className='grid grid-cols-2 gap-4'>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                 <div>
                   <label className='block text-sm font-medium text-gray-700 mb-2'>
                     Product Name *
@@ -376,9 +390,10 @@ export default function Products() {
                 </button>
                 <button
                   type='submit'
-                  className='flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium'
+                  disabled={submitting}
+                  className='flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 font-medium disabled:bg-blue-400 disabled:cursor-not-allowed'
                 >
-                  {editingId ? 'Update' : 'Create'}
+                  {submitting ? 'Saving...' : editingId ? 'Update' : 'Create'}
                 </button>
               </div>
             </form>
