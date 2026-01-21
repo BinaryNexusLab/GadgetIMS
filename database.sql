@@ -83,6 +83,14 @@ CREATE TABLE IF NOT EXISTS purchase_items (
   FOREIGN KEY (product_id) REFERENCES products(id)
 );
 
+-- Users Table
+CREATE TABLE IF NOT EXISTS users (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(150) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Insert Sample Products
 INSERT INTO products (name, sku, category, unit_price, stock, reorder_level) VALUES
 ('Wireless Headphones', 'WH-001', 'Audio', 149.99, 45, 10),

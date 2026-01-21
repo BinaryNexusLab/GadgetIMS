@@ -83,6 +83,14 @@ CREATE TABLE IF NOT EXISTS purchase_items (
   FOREIGN KEY (product_id) REFERENCES products(id)
 );
 
+-- Users Table
+CREATE TABLE IF NOT EXISTS users (
+  id INT PRIMARY KEY AUTO_INCREMENT,
+  username VARCHAR(150) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Inventory Alerts Table
 CREATE TABLE IF NOT EXISTS inventory_alerts (
   id INT PRIMARY KEY AUTO_INCREMENT,
